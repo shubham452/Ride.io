@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { Navigate } from 'react-router-dom';
 
 const Login = () => {
   const [input, setInput] = useState({
@@ -10,10 +12,34 @@ const Login = () => {
   const handleInput = (e) => {
     setInput({ ...input, [e.target.name]: e.target.value });
   };
+  const navigate = useNavigate();
+  const signInUser= async(userData)=>{
+    try {
+      const response = await axios.post('http://localhost:3000/api/login',userData);
+      console.log('login successful')
+      return response.data;
+    } catch (err) {
+      console.log("error during Login", err.response ? err.response.data : err.message);
+        throw new Error('Login failed. Please try again later');
+    }
+  }
+
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     console.log(input);
+    try {
+      const response= await signInUser(input);
+      console.log(response);
+      if(response)
+      {
+        navigate('/home')
+      }
+      
+    } catch (error) {
+      console.log('Sign in error: ', error)
+    }
   };
 
   return (
