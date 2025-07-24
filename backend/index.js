@@ -1,5 +1,5 @@
 import dotenv from 'dotenv';
-dotenv.config(); // ✅ LOADS FIRST
+dotenv.config(); 
 
 import express from 'express';
 import cors from 'cors';
@@ -20,7 +20,7 @@ app.use('/api', router);
 const startServer = () => {
     db();
     app.listen(PORT, () => {
-        console.log(`✅ Server running on port ${PORT}`);
+        console.log(`Server running on port ${PORT}`);
     });
 };
 

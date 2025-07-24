@@ -8,7 +8,6 @@ import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
 import markerIcon from "leaflet/dist/images/marker-icon.png";
 import markerShadow from "leaflet/dist/images/marker-shadow.png";
 
-// Fix Leaflet marker icon URLs for bundlers
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
     iconRetinaUrl: markerIcon2x,
@@ -19,13 +18,8 @@ L.Icon.Default.mergeOptions({
     function MapClickHandler({ pointA, setPointA, pointB, setPointB }) {
     useMapEvents({
         click(e) {
-        if (!pointA) {
-            console.log("Set PointA:", e.latlng);
-            setPointA(e.latlng);
-        } else if (!pointB) {
-            console.log("Set PointB:", e.latlng);
-            setPointB(e.latlng);
-        }
+        if (!pointA) setPointA(e.latlng);
+        else if (!pointB) setPointB(e.latlng);
         },
     });
     return null;
@@ -36,14 +30,10 @@ L.Icon.Default.mergeOptions({
         if (!navigator.geolocation || pointA) return;
         navigator.geolocation.getCurrentPosition(
         (pos) => {
-            console.log("Geolocation set PointA:", pos.coords);
             setPointA({ lat: pos.coords.latitude, lng: pos.coords.longitude });
             setUserLocated(true);
         },
-        () => {
-            console.log("Geolocation error");
-            setUserLocated(false);
-        }
+        () => setUserLocated(false)
         );
     }, [setPointA, setUserLocated, pointA]);
     return null;
@@ -53,45 +43,32 @@ L.Icon.Default.mergeOptions({
     const map = useMap();
 
     useEffect(() => {
-        if (!map || !pointA || !pointB) {
-        console.log("RoutingMachine: missing requirements", { map, pointA, pointB });
-        return;
-        }
+        if (!map || !pointA || !pointB) return;
+
         setLoading(true);
 
         const control = L.Routing.control({
-        waypoints: [
-            L.latLng(pointA.lat, pointA.lng),
-            L.latLng(pointB.lat, pointB.lng),
-        ],
+        waypoints: [L.latLng(pointA.lat, pointA.lng), L.latLng(pointB.lat, pointB.lng)],
         lineOptions: { styles: [{ color: "blue", weight: 5 }] },
-        show: false,
+        show: true,
         addWaypoints: false,
         draggableWaypoints: false,
         fitSelectedRoutes: true,
         routeWhileDragging: false,
         createMarker: () => null,
         })
-        .on("routesfound", function (e) {
+        .on("routesfound", (e) => {
             const route = e.routes[0];
-            const info = {
+            setRouteInfo({
             distance: (route.summary.totalDistance / 1000).toFixed(2),
             time: Math.round(route.summary.totalTime / 60),
-            };
-            setRouteInfo(info);
-            console.log("Route found and setRouteInfo:", info);
+            });
             setLoading(false);
         })
-        .on("routingerror", function (err) {
-            console.log("Routing error:", err);
-            setLoading(false);
-        })
+        .on("routingerror", () => setLoading(false))
         .addTo(map);
 
-        return () => {
-        map.removeControl(control);
-        console.log("RoutingMachine unmounted");
-        };
+        return () => map.removeControl(control);
     }, [map, pointA, pointB, setRouteInfo, setLoading]);
 
     return null;
@@ -113,58 +90,42 @@ L.Icon.Default.mergeOptions({
         setRouteInfo(null);
         setUserLocated(null);
         setShowRoute(false);
-        console.log("Reset route and all state");
     };
 
-    useEffect(() => {
-        console.log("State:",
-        { pointA, pointB, showRoute, routeInfo, loading }
-        );
-    }, [pointA, pointB, showRoute, routeInfo, loading]);
-
     return (
-        <div style={{ height: "100vh", width: "100vw", display: "flex", flexDirection: "column" }}>
-        <div style={{ padding: 8, background: "#f6f8fb" }}>
-            <button onClick={resetRoute} style={{ marginRight: 10 }}>🔄 New route</button>
-            <span>
+        <div className="h-screen w-screen flex flex-col">
+        {/* Top Bar */}
+        <div className="p-4 bg-gray-100 flex items-center justify-start gap-4 shadow-sm border-b border-gray-200">
+            <button onClick={resetRoute} className="text-sm bg-white px-3 py-2 rounded border hover:bg-gray-200">
+            New route
+            </button>
+            <span className="text-sm text-gray-700">
             {pointA && !pointB
                 ? "Select destination (Point B) on the map"
                 : !pointA
-                ? "Select start point (Point A) on the map or use your location"
+                ? "Select start point (Point A) or use your location"
                 : ""}
             </span>
             <button
             onClick={() => setUserLocated(true)}
             disabled={!!pointA}
-            style={{ marginLeft: 10 }}
+            className={`text-sm px-3 py-2 rounded border ${pointA ? "bg-gray-300 cursor-not-allowed" : "bg-white hover:bg-gray-200"}`}
             >
-            📍 Use My Location
+            Use My Location
             </button>
-            {(pointA && pointB && !showRoute) && (
+            {pointA && pointB && !showRoute && (
             <button
-                style={{
-                marginLeft: 10,
-                background: "#001e5a",
-                color: "#fff",
-                borderRadius: 4,
-                padding: "5px 15px",
-                }}
-                onClick={() => {
-                setShowRoute(true);
-                console.log("Show Route clicked");
-                }}
+                onClick={() => setShowRoute(true)}
+                className="ml-auto bg-blue-800 hover:bg-blue-900 text-white text-sm px-4 py-2 rounded"
             >
                 Show Route
             </button>
             )}
         </div>
-        <div style={{ flex: 1, position: "relative" }}>
-            <MapContainer
-            center={mapCenter}
-            zoom={13}
-            scrollWheelZoom
-            style={{ height: "100%", width: "100%" }}
-            >
+
+        {/* Map Section */}
+        <div className="flex-1 relative">
+            <MapContainer center={mapCenter} zoom={13} scrollWheelZoom className="h-full w-full z-0">
             <TileLayer
                 attribution='&copy; OpenStreetMap contributors'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -184,35 +145,27 @@ L.Icon.Default.mergeOptions({
                 />
             )}
             </MapContainer>
+
+            {/* Info Overlay */}
             {pointA && (
-            <div
-                style={{
-                position: "absolute",
-                left: "15px",
-                top: "60px",
-                background: "rgba(255,255,255,0.85)",
-                padding: "8px 12px",
-                borderRadius: 8,
-                minWidth: 150,
-                zIndex: 1000,
-                }}
-            >
-                <b>Point A</b>:<br />({pointA.lat.toFixed(5)}, {pointA.lng.toFixed(5)})
+            <div className="absolute top-16 left-4 bg-white/90 shadow-md rounded-lg p-4 z-[999] min-w-[180px] text-sm">
+                <div>
+                <strong>Point A:</strong><br />
+                ({pointA.lat.toFixed(5)}, {pointA.lng.toFixed(5)})
+                </div>
                 {pointB && (
-                <>
-                    <br />
-                    <b>Point B</b>:<br />({pointB.lat.toFixed(5)}, {pointB.lng.toFixed(5)})
-                </>
+                <div className="mt-2">
+                    <strong>Point B:</strong><br />
+                    ({pointB.lat.toFixed(5)}, {pointB.lng.toFixed(5)})
+                </div>
                 )}
                 {showRoute && routeInfo && (
-                <>
-                    {console.log("Showing distance/time in overlay:", routeInfo)}
-                    <br /><br />
-                    <b>Distance:</b> {routeInfo.distance} km<br />
-                    <b>Time:</b> {routeInfo.time} min
-                </>
+                <div className="mt-4 border-t pt-2">
+                    <div><strong>Distance:</strong> {routeInfo.distance} km</div>
+                    <div><strong>Time:</strong> {routeInfo.time} min</div>
+                </div>
                 )}
-                {loading && <div>Loading route...</div>}
+                {loading && <div className="mt-2 text-blue-700">Loading route...</div>}
             </div>
             )}
         </div>
