@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Navigate } from 'react-router-dom';
 
 const Login = () => {
   const [input, setInput] = useState({
@@ -9,36 +8,42 @@ const Login = () => {
     password: '',
   });
 
+  const [errorMessage, setErrorMessage] = useState('');  // <-- Add this state
+
   const handleInput = (e) => {
     setInput({ ...input, [e.target.name]: e.target.value });
   };
+
   const navigate = useNavigate();
-  const signInUser= async(userData)=>{
+
+  const signInUser = async (userData) => {
     try {
-      const response = await axios.post('http://localhost:3000/api/login',userData);
-      console.log('login successful')
+      const response = await axios.post('http://localhost:3000/api/login', userData);
+      console.log('login successful');
       return response.data;
     } catch (err) {
+      // Check for a user-not-found condition - adjust based on your backend's error response
+      if (err.response && err.response.status === 404) {
+        setErrorMessage("User not found. Please sign up.");
+      } else {
+        setErrorMessage('Login failed. Please try again later.');
+      }
       console.log("error during Login", err.response ? err.response.data : err.message);
-        throw new Error('Login failed. Please try again later');
+      throw err;
     }
-  }
-
-
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log(input);
+    setErrorMessage(''); // Clear previous error
     try {
-      const response= await signInUser(input);
-      console.log(response);
-      if(response)
-      {
-        navigate('/home')
+      const response = await signInUser(input);
+      if (response) {
+        navigate('/home');
       }
-      
     } catch (error) {
-      console.log('Sign in error: ', error)
+      console.log('Sign in error: ', error);
+      // errorMessage state is already set inside signInUser
     }
   };
 
@@ -77,6 +82,9 @@ const Login = () => {
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
+          {errorMessage && (
+            <p className="text-center text-red-600 font-semibold">{errorMessage}</p>
+          )}
           <button
             type="submit"
             className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition duration-200 font-semibold"
