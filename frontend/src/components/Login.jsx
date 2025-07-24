@@ -8,7 +8,7 @@ const Login = () => {
     password: '',
   });
 
-  const [errorMessage, setErrorMessage] = useState('');  // <-- Add this state
+  const [errorMessage, setErrorMessage] = useState('');  
 
   const handleInput = (e) => {
     setInput({ ...input, [e.target.name]: e.target.value });
@@ -22,7 +22,7 @@ const Login = () => {
       console.log('login successful');
       return response.data;
     } catch (err) {
-      // Check for a user-not-found condition - adjust based on your backend's error response
+      
       if (err.response && err.response.status === 404) {
         setErrorMessage("User not found. Please sign up.");
       } else {
@@ -35,7 +35,7 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setErrorMessage(''); // Clear previous error
+    setErrorMessage(''); 
     try {
       const response = await signInUser(input);
       if (response) {
@@ -43,7 +43,6 @@ const Login = () => {
       }
     } catch (error) {
       console.log('Sign in error: ', error);
-      // errorMessage state is already set inside signInUser
     }
   };
 
